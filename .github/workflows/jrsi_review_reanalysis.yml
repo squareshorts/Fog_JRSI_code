@@ -14,34 +14,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Extract analysis archive and inspect entry points
-        shell: bash
+      - name: Extract archive
         run: |
-          set -euo pipefail
-          rm -rf extracted
-          mkdir -p extracted
+          rm -rf extracted && mkdir -p extracted
           unzip -q doorway_code_release.zip -d extracted
-          echo '=== FILE TREE ==='
-          find extracted -maxdepth 5 -type f | sort | sed -n '1,400p'
-      - name: Inspect public Mendeley dataset metadata
+      - name: Locate Mendeley public file identifiers
         shell: bash
         run: |
           set -euo pipefail
-          echo '=== Mendeley public page ==='
           curl -L --retry 3 --fail -sS 'https://data.mendeley.com/datasets/r8gmbtv7w2/3' -o /tmp/mendeley.html
-          wc -c /tmp/mendeley.html
-          grep -Eo 'https?[^" ]+' /tmp/mendeley.html | grep -Ei 'download|file|api' | head -n 80 || true
-          echo '=== Public API without token ==='
-          for u in \
-            'https://api.mendeley.com/datasets/r8gmbtv7w2?version=3' \
-            'https://api.data.mendeley.com/datasets/r8gmbtv7w2?version=3' \
-            'https://data.mendeley.com/api/datasets/r8gmbtv7w2/versions/3'; do
-            echo "--- $u"
-            curl -L -sS -D /tmp/h -o /tmp/b "$u" || true
-            head -n 1 /tmp/h || true
-            head -c 8000 /tmp/b || true
-            echo
-          done
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          s=Path('/tmp/mendeley.html').read_text(errors='replace')
+          print('bytes',len(s))
+          for pat in ['file_downloaded','public-files','r8gmbtv7w2','Filtered','files']:
+              print('\n===',pat,'===')
+              for m in list(re.finditer(pat,s,re.I))[:30]:
+                  a=max(0,m.start()-500); b=min(len(s),m.end()+1000)
+                  print(s[a:b].replace('><','>\n<'))
+          uuids=sorted(set(re.findall(r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b',s)))
+          print('\nUUIDS',len(uuids))
+          print('\n'.join(uuids))
+          PY
       - name: Upload extracted archive
         uses: actions/upload-artifact@v4
         with:
