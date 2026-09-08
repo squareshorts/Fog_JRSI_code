@@ -23,11 +23,25 @@ jobs:
           unzip -q doorway_code_release.zip -d extracted
           echo '=== FILE TREE ==='
           find extracted -maxdepth 5 -type f | sort | sed -n '1,400p'
-          echo '=== README / INSTRUCTION FILES ==='
-          while IFS= read -r f; do
-            echo "--- $f ---"
-            sed -n '1,260p' "$f"
-          done < <(find extracted -maxdepth 5 -type f \( -iname 'README*' -o -iname '*INSTRUCTION*' -o -iname '*REPRODUC*' -o -iname 'requirements*.txt' -o -iname 'pyproject.toml' -o -iname 'setup.cfg' \) | sort)
+      - name: Inspect public Mendeley dataset metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== Mendeley public page ==='
+          curl -L --retry 3 --fail -sS 'https://data.mendeley.com/datasets/r8gmbtv7w2/3' -o /tmp/mendeley.html
+          wc -c /tmp/mendeley.html
+          grep -Eo 'https?[^" ]+' /tmp/mendeley.html | grep -Ei 'download|file|api' | head -n 80 || true
+          echo '=== Public API without token ==='
+          for u in \
+            'https://api.mendeley.com/datasets/r8gmbtv7w2?version=3' \
+            'https://api.data.mendeley.com/datasets/r8gmbtv7w2?version=3' \
+            'https://data.mendeley.com/api/datasets/r8gmbtv7w2/versions/3'; do
+            echo "--- $u"
+            curl -L -sS -D /tmp/h -o /tmp/b "$u" || true
+            head -n 1 /tmp/h || true
+            head -c 8000 /tmp/b || true
+            echo
+          done
       - name: Upload extracted archive
         uses: actions/upload-artifact@v4
         with:
