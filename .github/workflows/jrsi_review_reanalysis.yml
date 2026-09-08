@@ -13,16 +13,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Resolve public dataset files
+      - name: Resolve public folder tree
         shell: bash
         run: |
           set -euo pipefail
           H='Accept: application/vnd.mendeley-public-dataset.1+json'
-          u='https://data.mendeley.com/public-api/datasets/r8gmbtv7w2/files?folder_id=root&version=3'
-          echo "=== root files ==="
-          curl --max-time 30 -L -sS -H "$H" -D /tmp/h -o /tmp/b "$u"
-          head -n 1 /tmp/h
-          cat /tmp/b
-          echo
-          echo "=== archive headers ==="
-          curl --max-time 30 -L -sS -I 'https://data.mendeley.com/public-api/zip/r8gmbtv7w2/download/3' || true
+          curl --max-time 30 -L -sS 'https://data.mendeley.com/datasets/bundle.js?ec45581598eb1337d2e2' -o /tmp/bundle.js
+          echo '=== route contexts ==='
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/bundle.js').read_text(errors='replace')
+          for term in ['fetchFolders','folders?','/folders','folder_id']:
+              print('\nTERM',term)
+              start=0
+              for _ in range(15):
+                  i=s.find(term,start)
+                  if i<0: break
+                  print(s[max(0,i-500):i+900])
+                  start=i+len(term)
+          PY
+          echo '=== guessed root folder endpoints ==='
+          for u in \
+            'https://data.mendeley.com/public-api/datasets/r8gmbtv7w2/folders?folder_id=root&version=3' \
+            'https://data.mendeley.com/public-api/datasets/r8gmbtv7w2/folders?parent_id=root&version=3' \
+            'https://data.mendeley.com/public-api/datasets/r8gmbtv7w2/folders?version=3'; do
+            echo "--- $u"
+            curl --max-time 20 -L -sS -H "$H" -o /tmp/b "$u" || true
+            cat /tmp/b || true
+            echo
+          done
