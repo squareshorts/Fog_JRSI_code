@@ -1,0 +1,36 @@
+name: JRSI reviewer reanalysis
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Extract analysis archive and inspect entry points
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf extracted
+          mkdir -p extracted
+          unzip -q doorway_code_release.zip -d extracted
+          echo '=== FILE TREE ==='
+          find extracted -maxdepth 5 -type f | sort | sed -n '1,400p'
+          echo '=== README / INSTRUCTION FILES ==='
+          while IFS= read -r f; do
+            echo "--- $f ---"
+            sed -n '1,260p' "$f"
+          done < <(find extracted -maxdepth 5 -type f \( -iname 'README*' -o -iname '*INSTRUCTION*' -o -iname '*REPRODUC*' -o -iname 'requirements*.txt' -o -iname 'pyproject.toml' -o -iname 'setup.cfg' \) | sort)
+      - name: Upload extracted archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: doorway-code-extracted
+          path: extracted
+          if-no-files-found: error
