@@ -9,37 +9,41 @@ permissions:
   contents: read
 
 jobs:
-  inspect:
+  reanalysis:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Assemble analysis script
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat analysis/reviewer_part_00.py analysis/reviewer_part_01.py analysis/reviewer_part_02.py analysis/reviewer_part_03.py > analysis/reviewer_reanalysis.py
+          python -m py_compile analysis/reviewer_reanalysis.py
+      - name: Install dependencies
+        run: python -m pip install -q numpy pandas scipy matplotlib statsmodels scikit-learn
       - name: Download filtered public dataset
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p work
-          curl --retry 4 --retry-delay 3 --fail -L \
-            'https://data.mendeley.com/public-api/zip/r8gmbtv7w2/download/3' \
-            -o work/fog_filtered_v3.zip
-          ls -lh work/fog_filtered_v3.zip
-          unzip -l work/fog_filtered_v3.zip > work/zip_manifest.txt
-          sed -n '1,220p' work/zip_manifest.txt
           mkdir -p work/data
+          curl --retry 4 --retry-delay 3 --fail -L 'https://data.mendeley.com/public-api/zip/r8gmbtv7w2/download/3' -o work/fog_filtered_v3.zip
           unzip -q work/fog_filtered_v3.zip -d work/data
-          echo '=== top-level tree ==='
-          find work/data -maxdepth 5 -type f | sort | sed -n '1,300p'
-          echo '=== sizes ==='
-          du -sh work/data
-          find work/data -type f -printf '%s %p\n' | sort -nr | head -n 50
-          echo '=== representative text heads ==='
-          find work/data -type f \( -iname '*.txt' -o -iname '*.csv' \) | sort | head -n 8 | while read f; do
-            echo "--- $f ---"
-            head -n 4 "$f" | cut -c1-1200
-          done
-      - name: Upload inspection manifest
+          rm work/fog_filtered_v3.zip
+      - name: Execute reviewer reanalysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          python analysis/reviewer_reanalysis.py --data-root 'work/data/Filtered Data' --out work/results
+          echo '=== REPORT ==='
+          cat work/results/REPORT.md
+      - name: Upload complete reanalysis results
         uses: actions/upload-artifact@v4
         with:
-          name: fog-filtered-inspection
-          path: work/zip_manifest.txt
+          name: jrsi-review-reanalysis-results
+          path: work/results
           if-no-files-found: error
+          compression-level: 6
