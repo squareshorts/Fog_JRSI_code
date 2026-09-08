@@ -13,19 +13,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Probe public files API
+      - name: Query public file tree
         shell: bash
         run: |
           set -euo pipefail
-          for u in \
-            'https://data.mendeley.com/public-api/datasets/r8gmbtv7w2/files?version=3' \
-            'https://data.mendeley.com/public-api/datasets/r8gmbtv7w2/versions/3/files' \
-            'https://data.mendeley.com/api/datasets-v2/r8gmbtv7w2/files?version=3' \
-            'https://data.mendeley.com/api/datasets-v2/r8gmbtv7w2/versions/3/files' \
-            'https://data.mendeley.com/public-api/datasets/r8gmbtv7w2?version=3'; do
+          for q in \
+            'version=3&parent=root' \
+            'version=3&page=1&limit=100&parent=root' \
+            'version=3&folder=root' \
+            'version=3&parent=' \
+            'version=3&limit=100'; do
+            u="https://data.mendeley.com/public-api/datasets/r8gmbtv7w2/files?$q"
             echo "=== $u ==="
-            curl -L -sS -D /tmp/h -o /tmp/b "$u" || true
-            head -n 1 /tmp/h
-            head -c 20000 /tmp/b
+            curl --max-time 20 -L -sS -D /tmp/h -o /tmp/b "$u" || true
+            head -n 1 /tmp/h || true
+            head -c 30000 /tmp/b || true
             echo
           done
+          echo '=== bundle route strings ==='
+          curl --max-time 30 -L -sS 'https://data.mendeley.com/datasets/bundle.js?ec45581598eb1337d2e2' -o /tmp/bundle.js || true
+          grep -oE '.{0,180}(public-api|/files).{0,260}' /tmp/bundle.js | head -n 100 || true
