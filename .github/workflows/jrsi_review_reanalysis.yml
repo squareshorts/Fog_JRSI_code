@@ -12,34 +12,20 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Extract archive
-        run: |
-          rm -rf extracted && mkdir -p extracted
-          unzip -q doorway_code_release.zip -d extracted
-      - name: Locate Mendeley public file identifiers
+      - uses: actions/checkout@v4
+      - name: Probe public files API
         shell: bash
         run: |
           set -euo pipefail
-          curl -L --retry 3 --fail -sS 'https://data.mendeley.com/datasets/r8gmbtv7w2/3' -o /tmp/mendeley.html
-          python - <<'PY'
-          import re
-          from pathlib import Path
-          s=Path('/tmp/mendeley.html').read_text(errors='replace')
-          print('bytes',len(s))
-          for pat in ['file_downloaded','public-files','r8gmbtv7w2','Filtered','files']:
-              print('\n===',pat,'===')
-              for m in list(re.finditer(pat,s,re.I))[:30]:
-                  a=max(0,m.start()-500); b=min(len(s),m.end()+1000)
-                  print(s[a:b].replace('><','>\n<'))
-          uuids=sorted(set(re.findall(r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b',s)))
-          print('\nUUIDS',len(uuids))
-          print('\n'.join(uuids))
-          PY
-      - name: Upload extracted archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: doorway-code-extracted
-          path: extracted
-          if-no-files-found: error
+          for u in \
+            'https://data.mendeley.com/public-api/datasets/r8gmbtv7w2/files?version=3' \
+            'https://data.mendeley.com/public-api/datasets/r8gmbtv7w2/versions/3/files' \
+            'https://data.mendeley.com/api/datasets-v2/r8gmbtv7w2/files?version=3' \
+            'https://data.mendeley.com/api/datasets-v2/r8gmbtv7w2/versions/3/files' \
+            'https://data.mendeley.com/public-api/datasets/r8gmbtv7w2?version=3'; do
+            echo "=== $u ==="
+            curl -L -sS -D /tmp/h -o /tmp/b "$u" || true
+            head -n 1 /tmp/h
+            head -c 20000 /tmp/b
+            echo
+          done
