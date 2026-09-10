@@ -22,7 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           cat analysis/reviewer_part_00.py analysis/reviewer_part_01.py analysis/reviewer_part_02.py analysis/reviewer_part_03.py > analysis/reviewer_reanalysis.py
-          python -m py_compile analysis/reviewer_reanalysis.py analysis/continuous_onset_dynamics.py
+          python -m py_compile analysis/reviewer_reanalysis.py analysis/continuous_onset_dynamics.py analysis/antecedent_history_final.py
       - name: Install dependencies
         run: python -m pip install -q numpy pandas scipy matplotlib statsmodels scikit-learn
       - name: Download filtered public dataset
@@ -47,6 +47,13 @@ jobs:
           PYTHONPATH=analysis python analysis/continuous_onset_dynamics.py --data-root 'work/data/Filtered Data' --out work/continuous --nperm 199
           echo '=== CONTINUOUS ONSET REPORT ==='
           cat work/continuous/REPORT_CONTINUOUS.md
+      - name: Execute strictly antecedent history analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=analysis python analysis/antecedent_history_final.py --data-root 'work/data/Filtered Data' --out work/antecedent --nperm 499
+          echo '=== STRICTLY ANTECEDENT HISTORY REPORT ==='
+          cat work/antecedent/REPORT_ANTECEDENT.md
       - name: Upload complete reanalysis results
         uses: actions/upload-artifact@v4
         with:
@@ -54,5 +61,6 @@ jobs:
           path: |
             work/results
             work/continuous
+            work/antecedent
           if-no-files-found: error
           compression-level: 6
