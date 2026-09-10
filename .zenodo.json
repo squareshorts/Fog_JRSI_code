@@ -1,0 +1,27 @@
+{
+  "title": "Reproducible analysis code for Testing cortical-state persistence as a dynamical mechanism of freezing of gait",
+  "description": "Frozen reproducibility release for the resubmission of manuscript rsif-2026-0121 to Journal of the Royal Society Interface. The code analyses the public Mendeley Data version-3 multimodal freezing-of-gait dataset and evaluates concurrent cortical spectral associations, continuous versus discretized representations, prospective cortical-state persistence, and strictly antecedent theta/low-beta dynamics before freezing onset.",
+  "creators": [
+    {
+      "name": "Pereira, Antonio"
+    }
+  ],
+  "keywords": [
+    "freezing of gait",
+    "Parkinson disease",
+    "EEG",
+    "cortical dynamics",
+    "state persistence",
+    "reproducibility"
+  ],
+  "license": "MIT",
+  "upload_type": "software",
+  "access_right": "open",
+  "related_identifiers": [
+    {
+      "identifier": "https://doi.org/10.17632/r8gmbtv7w2.3",
+      "relation": "isSupplementTo",
+      "scheme": "doi"
+    }
+  ]
+}
